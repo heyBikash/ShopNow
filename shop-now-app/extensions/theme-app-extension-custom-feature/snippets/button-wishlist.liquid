@@ -1,0 +1,126 @@
+{% comment %}
+  A wishlist button for adding and removing products from the wishlist.
+  This snippet requires the `wishlist.js` file and heart SVG icons to function.
+  It is recommended to render this file as a snippet wherever you want a wishlist button to appear,
+  for example, on product pages or within product cards.
+{% endcomment %}
+
+{%- liquid
+  assign product_id = product.id
+  assign product_handle = product.handle
+-%}
+
+<button
+  type="button"
+  class="wishlist-btn"
+  data-product-id="{{ product_id }}"
+  data-product-handle="{{ product_handle }}"
+  aria-label="Add to wishlist"
+>
+  {% render 'heart-outline.svg' %}
+  {% render 'heart-filled.svg' %}
+  <span class="wishlist-btn-text">Add to Wishlist</span>
+</button>
+
+<style>
+  /* Base styles for the button */
+  .wishlist-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: inherit;
+    padding: 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .wishlist-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  /* Show the outlined heart by default */
+  .wishlist-btn .heart-filled {
+    display: none;
+  }
+
+  /* Hide the filled heart by default */
+  .wishlist-btn .heart-outline {
+    display: block;
+  }
+
+  /* When the product is active in the wishlist, swap the icons */
+  .wishlist-btn.is-active .heart-filled {
+    display: block;
+  }
+
+  .wishlist-btn.is-active .heart-outline {
+    display: none;
+  }
+
+  /* Optional: Style the active state with a color */
+  .wishlist-btn.is-active {
+    color: #ff0000; /* Red heart */
+  }
+
+  /* Make SVG icons scale nicely */
+  .wishlist-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+</style>
+
+<script>
+  /**
+   * This code relies on the wishlist.js logic to handle localStorage and toggle functionality.
+   * Make sure your `wishlist.js` file is properly included in your theme.
+   * This snippet initializes the button state when the page loads by checking `localStorage`.
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    const wishlistButton = document.querySelector('.wishlist-btn[data-product-id="{{ product_id }}"]');
+    if (!wishlistButton) return;
+
+    const productId = wishlistButton.dataset.productId;
+    const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const isAlreadyInWishlist = wishlist.some(item => item.id === productId);
+
+    const buttonText = wishlistButton.querySelector('.wishlist-btn-text');
+
+    if (isAlreadyInWishlist) {
+      wishlistButton.classList.add('is-active');
+      if (buttonText) buttonText.textContent = "Added to Wishlist";
+    }
+
+    wishlistButton.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      let currentWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+      const isAlreadyIn = currentWishlist.some(item => item.id === productId);
+      
+      if (!isAlreadyIn) {
+        // Add the product to the wishlist
+        const productData = {
+          id: '{{ product.id }}',
+          title: '{{ product.title | escape }}',
+          handle: '{{ product.handle | escape }}',
+          featured_image: '{{ product.featured_image | img_url: 'medium' }}',
+          price: '{{ product.price | money | escape }}'
+        };
+        currentWishlist.push(productData);
+        localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
+        wishlistButton.classList.add('is-active');
+        if (buttonText) buttonText.textContent = "Added to Wishlist";
+      } else {
+        // Remove the product from the wishlist
+        currentWishlist = currentWishlist.filter(item => item.id !== productId);
+        localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
+        wishlistButton.classList.remove('is-active');
+        if (buttonText) buttonText.textContent = "Add to Wishlist";
+      }
+    });
+  });
+</script>
+
