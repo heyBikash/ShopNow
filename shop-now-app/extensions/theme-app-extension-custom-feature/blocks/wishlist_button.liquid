@@ -1,110 +1,127 @@
 {% comment %}
-  Wishlist button that can be used on product pages.
-  This version does not use the invalid `return` statement.
+  Wishlist button with all data embedded in data attributes.
+  This snippet should be placed within a product loop on collection/list pages.
 {% endcomment %}
 
 {%- liquid
   if product
     assign product_id = product.id
     assign product_handle = product.handle
+    assign product_title = product.title | escape
+    assign product_featured_image = product.featured_image | img_url: 'medium'
+    assign product_price = product.price | money | escape
   endif
 -%}
 
-  <button
-    type="button"
-    class="wishlist-btn"
-    data-product-id="{{ product_id }}"
-    data-product-handle="{{ product_handle }}"
-    aria-label="Add to wishlist"
-  >
-    <span class="wishlist-btn-text">Add to Wishlist</span>
-  </button>
+<button
+  type="button"
+  class="wishlist-btn"
+  data-product-id="{{ product_id }}"
+  data-product-handle="{{ product_handle }}"
+  data-product-title="{{ product_title }}"
+  data-product-image="{{ product_featured_image }}"
+  data-product-price="{{ product_price }}"
+  aria-label="Add to wishlist"
+>
+  <span class="wishlist-btn-text">Add to Wishlist</span>
+</button>
 
-  <style>
-    /* Base styles for the button */
-    .wishlist-btn {
-      background: none;
-      border: 1px solid currentColor; 
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 14px;
-      color: inherit;
-      padding: 10px 20px;
-      border-radius: 4px;
-      transition: all 0.2s ease-in-out;
-      min-width: 150px; /* Adjust as needed */
+<style>
+  /* Base styles for the button */
+  .wishlist-btn {
+    background: none;
+    border: 1px solid black;
+    color: black;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+    min-width: 150px; /* Adjust as needed */
+  }
+  .wishlist-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid black;
+  }
+  .wishlist-btn.is-active {
+    background-color: {{ block.settings.colour }};
+    border-color: {{ block.settings.colour }};
+    color: black;
+  }
+</style>
+
+<script>
+  // Event delegation on document.body for dynamic elements
+  document.body.addEventListener('click', (e) => {
+    const wishlistButton = e.target.closest('.wishlist-btn');
+    if (!wishlistButton) return;
+    e.preventDefault();
+console.log(e)
+    const productId = wishlistButton.dataset.productId;
+    const productTitle = wishlistButton.dataset.productTitle;
+    const productHandle = wishlistButton.dataset.productHandle;
+    const productFeaturedImage = wishlistButton.dataset.productImage;
+    const productPrice = wishlistButton.dataset.productPrice;
+
+    // A log for debugging to confirm data is being retrieveda
+    console.log('Wishlist button clicked for product:', {
+      id: productId,
+      title: productTitle,
+      handle: productHandle,
+      featured_image: productFeaturedImage,
+      price: productPrice
+    });
+    let currentWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const isAlreadyIn = currentWishlist.some(item => item.id == productId);
+    const buttonText = wishlistButton.querySelector('.wishlist-btn-text');
+    if (!isAlreadyIn) {
+      const productData = {
+        id: productId,
+        title: productTitle,
+        handle: productHandle,
+        featured_image: productFeaturedImage,
+        price: productPrice
+      };
+      currentWishlist.push(productData);
+      localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
+      wishlistButton.classList.add('is-active');
+      if (buttonText) buttonText.textContent = "Remove from Wishlist";
+    } else {
+      currentWishlist = currentWishlist.filter(item => item.id != productId);
+      localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
+      wishlistButton.classList.remove('is-active');
+      if (buttonText) buttonText.textContent = "Add to Wishlist";
     }
+  });
 
-    .wishlist-btn:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    /* Style for when the item is in the wishlist */
-    .wishlist-btn.is-active {
-      background-color: {{ block.settings.colour }};
-      border-color: {{ block.settings.colour }};
-      color: #fff;
-    }
-  </style>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const wishlistButton = document.querySelector('.wishlist-btn[data-product-id="{{ product_id }}"]');
-      if (!wishlistButton) return;
-
+  // This block checks button status on initial load for all buttons
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.wishlist-btn').forEach(wishlistButton => {
       const productId = wishlistButton.dataset.productId;
+      if (!productId) return;
       const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
       const isAlreadyInWishlist = wishlist.some(item => item.id == productId);
-
       const buttonText = wishlistButton.querySelector('.wishlist-btn-text');
-
       if (isAlreadyInWishlist) {
         wishlistButton.classList.add('is-active');
-        if (buttonText) buttonText.textContent = "Added to Wishlist";
+        if (buttonText) buttonText.textContent = "Remove from Wishlist";
       }
-
-      wishlistButton.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        let currentWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-        const isAlreadyIn = currentWishlist.some(item => item.id == productId);
-        console.log(isAlreadyIn, "response received from line 74, wishlist_button.liquid file")
-        
-        if (!isAlreadyIn) {
-          // Add the product to the wishlist
-          const productData = {
-            id: productId,
-            title: '{{ product.title | escape }}',
-            handle: '{{ product.handle | escape }}',
-            featured_image: '{{ product.featured_image | img_url: 'medium' }}',
-            price: '{{ product.price | money | escape }}'
-          };
-          currentWishlist.push(productData);
-          localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
-          wishlistButton.classList.add('is-active');
-          if (buttonText) buttonText.textContent = "Added to Wishlist";
-        } else {
-          // Remove the product from the wishlist
-          currentWishlist = currentWishlist.filter(item => item.id != productId);
-          localStorage.setItem('wishlist', JSON.stringify(currentWishlist));
-          wishlistButton.classList.remove('is-active');
-          if (buttonText) buttonText.textContent = "Add to Wishlist";
-        }
-      });
     });
-  </script>
+  });
+</script>
 
 {%- schema -%}
 {
   "name": "Wishlist button",
-  "target": "section", 
+  "target": "section",
   "settings": [
     {
-      "type": "text", 
-      "id": "empty_text",   
+      "type": "text",
+      "id": "empty_text",
       "label": "Empty text"
     }
   ]
